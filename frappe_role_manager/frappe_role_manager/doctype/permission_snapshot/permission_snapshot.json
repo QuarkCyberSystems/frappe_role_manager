@@ -1,0 +1,123 @@
+{
+	"actions": [],
+	"allow_rename": 0,
+	"autoname": "format:{snapshot_type}-{YYYY}-{MM}-{DD}-{####}",
+	"creation": "2024-01-15 10:00:00.000000",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"snapshot_type",
+		"description",
+		"column_break_1",
+		"status",
+		"created_by",
+		"section_break_data",
+		"snapshot_data",
+		"section_break_meta",
+		"user_filter",
+		"role_filter",
+		"column_break_2",
+		"doctype_filter",
+		"department_filter"
+	],
+	"fields": [
+		{
+			"fieldname": "snapshot_type",
+			"fieldtype": "Select",
+			"in_list_view": 1,
+			"label": "Snapshot Type",
+			"options": "Full Backup\nUser Permissions\nRole Permissions\nRole Assignments\nSelective Export",
+			"reqd": 1
+		},
+		{
+			"fieldname": "description",
+			"fieldtype": "Small Text",
+			"label": "Description"
+		},
+		{
+			"fieldname": "column_break_1",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "status",
+			"fieldtype": "Select",
+			"in_list_view": 1,
+			"label": "Status",
+			"options": "Created\nApplied\nRolled Back",
+			"default": "Created"
+		},
+		{
+			"fieldname": "created_by",
+			"fieldtype": "Link",
+			"label": "Created By",
+			"options": "User",
+			"read_only": 1
+		},
+		{
+			"fieldname": "section_break_data",
+			"fieldtype": "Section Break",
+			"label": "Snapshot Data"
+		},
+		{
+			"fieldname": "snapshot_data",
+			"fieldtype": "JSON",
+			"label": "Snapshot Data"
+		},
+		{
+			"fieldname": "section_break_meta",
+			"fieldtype": "Section Break",
+			"label": "Filters Applied",
+			"collapsible": 1
+		},
+		{
+			"fieldname": "user_filter",
+			"fieldtype": "Small Text",
+			"label": "Users Included"
+		},
+		{
+			"fieldname": "role_filter",
+			"fieldtype": "Small Text",
+			"label": "Roles Included"
+		},
+		{
+			"fieldname": "column_break_2",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "doctype_filter",
+			"fieldtype": "Small Text",
+			"label": "DocTypes Included"
+		},
+		{
+			"fieldname": "department_filter",
+			"fieldtype": "Small Text",
+			"label": "Departments Included"
+		}
+	],
+	"index_web_pages_for_search": 0,
+	"links": [],
+	"modified": "2024-01-15 10:00:00.000000",
+	"modified_by": "Administrator",
+	"module": "Frappe Role Manager",
+	"name": "Permission Snapshot",
+	"naming_rule": "Expression",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		}
+	],
+	"sort_field": "creation",
+	"sort_order": "DESC",
+	"states": [],
+	"track_changes": 1
+}

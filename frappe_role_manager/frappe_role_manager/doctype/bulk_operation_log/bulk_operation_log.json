@@ -1,0 +1,161 @@
+{
+	"actions": [],
+	"allow_rename": 0,
+	"autoname": "format:BOP-{YYYY}{MM}{DD}-{####}",
+	"creation": "2024-01-15 10:00:00.000000",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"operation_type",
+		"status",
+		"column_break_1",
+		"started_at",
+		"completed_at",
+		"executed_by",
+		"section_break_params",
+		"operation_params",
+		"section_break_results",
+		"total_records",
+		"success_count",
+		"column_break_2",
+		"failure_count",
+		"skipped_count",
+		"section_break_details",
+		"operation_details",
+		"section_break_errors",
+		"error_log"
+	],
+	"fields": [
+		{
+			"fieldname": "operation_type",
+			"fieldtype": "Select",
+			"in_list_view": 1,
+			"label": "Operation Type",
+			"options": "Copy User Permissions\nBulk Role Assignment\nBulk Role Removal\nImport Permissions\nClone Role\nBulk User Permission Assignment",
+			"reqd": 1
+		},
+		{
+			"fieldname": "status",
+			"fieldtype": "Select",
+			"in_list_view": 1,
+			"label": "Status",
+			"options": "Pending\nIn Progress\nCompleted\nFailed\nPartially Completed",
+			"default": "Pending"
+		},
+		{
+			"fieldname": "column_break_1",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "started_at",
+			"fieldtype": "Datetime",
+			"label": "Started At",
+			"read_only": 1
+		},
+		{
+			"fieldname": "completed_at",
+			"fieldtype": "Datetime",
+			"label": "Completed At",
+			"read_only": 1
+		},
+		{
+			"fieldname": "executed_by",
+			"fieldtype": "Link",
+			"label": "Executed By",
+			"options": "User",
+			"read_only": 1
+		},
+		{
+			"fieldname": "section_break_params",
+			"fieldtype": "Section Break",
+			"label": "Operation Parameters"
+		},
+		{
+			"fieldname": "operation_params",
+			"fieldtype": "JSON",
+			"label": "Operation Parameters"
+		},
+		{
+			"fieldname": "section_break_results",
+			"fieldtype": "Section Break",
+			"label": "Results Summary"
+		},
+		{
+			"fieldname": "total_records",
+			"fieldtype": "Int",
+			"label": "Total Records",
+			"read_only": 1
+		},
+		{
+			"fieldname": "success_count",
+			"fieldtype": "Int",
+			"label": "Success Count",
+			"read_only": 1
+		},
+		{
+			"fieldname": "column_break_2",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "failure_count",
+			"fieldtype": "Int",
+			"label": "Failure Count",
+			"read_only": 1
+		},
+		{
+			"fieldname": "skipped_count",
+			"fieldtype": "Int",
+			"label": "Skipped Count",
+			"read_only": 1
+		},
+		{
+			"fieldname": "section_break_details",
+			"fieldtype": "Section Break",
+			"label": "Operation Details",
+			"collapsible": 1
+		},
+		{
+			"fieldname": "operation_details",
+			"fieldtype": "JSON",
+			"label": "Operation Details"
+		},
+		{
+			"fieldname": "section_break_errors",
+			"fieldtype": "Section Break",
+			"label": "Error Log",
+			"collapsible": 1
+		},
+		{
+			"fieldname": "error_log",
+			"fieldtype": "Long Text",
+			"label": "Error Log",
+			"read_only": 1
+		}
+	],
+	"index_web_pages_for_search": 0,
+	"links": [],
+	"modified": "2024-01-15 10:00:00.000000",
+	"modified_by": "Administrator",
+	"module": "Frappe Role Manager",
+	"name": "Bulk Operation Log",
+	"naming_rule": "Expression",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		}
+	],
+	"sort_field": "creation",
+	"sort_order": "DESC",
+	"states": [],
+	"track_changes": 1
+}

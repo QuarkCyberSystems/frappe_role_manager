@@ -1,7 +1,7 @@
 app_name = "frappe_role_manager"
 app_title = "Frappe Role Manager"
 app_publisher = "sammish"
-app_description = "frappe role manager"
+app_description = "Comprehensive role and permission management for Frappe"
 app_email = "sammish.thundiyil@gmail.com"
 app_license = "mit"
 
@@ -11,15 +11,14 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "frappe_role_manager",
-# 		"logo": "/assets/frappe_role_manager/logo.png",
-# 		"title": "Frappe Role Manager",
-# 		"route": "/frappe_role_manager",
-# 		"has_permission": "frappe_role_manager.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "frappe_role_manager",
+		"logo": "/assets/frappe_role_manager/images/logo.svg",
+		"title": "Role Manager",
+		"route": "/app/role-manager",
+	}
+]
 
 # Includes in <head>
 # ------------------
@@ -238,9 +237,9 @@ app_license = "mit"
 # Automatically update python controller files with type annotations for this app.
 # export_python_type_annotations = True
 
-# default_log_clearing_doctypes = {
-# 	"Logging DocType Name": 30  # days to retain logs
-# }
+default_log_clearing_doctypes = {
+	"Bulk Operation Log": 30  # days to retain logs
+}
 
 # Translation
 # ------------

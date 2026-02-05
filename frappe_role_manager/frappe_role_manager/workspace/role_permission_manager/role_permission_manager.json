@@ -1,0 +1,53 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"6vs3C8A3TP\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Role Permission Manager</span>\",\"col\":12}},{\"id\":\"JBr1KdCRhh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Role Manager\",\"col\":3}},{\"id\":\"B655fsXo6v\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Bulk Operation Log\",\"col\":3}},{\"id\":\"pL9w8NzosC\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Permission Snapshot\",\"col\":3}}]",
+ "creation": "2026-02-05 13:00:36.237276",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "assign",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Role Permission Manager",
+ "links": [],
+ "modified": "2026-02-05 13:02:27.372674",
+ "modified_by": "Administrator",
+ "module": "Frappe Role Manager",
+ "name": "Role Permission Manager",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Users",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 34.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Role Manager",
+   "link_to": "role-manager",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Bulk Operation Log",
+   "link_to": "Bulk Operation Log",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Permission Snapshot",
+   "link_to": "Permission Snapshot",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Role Permission Manager"
+}
