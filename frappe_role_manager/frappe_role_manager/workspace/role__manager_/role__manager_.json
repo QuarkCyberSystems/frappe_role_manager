@@ -9,14 +9,14 @@
  "hide_custom": 0,
  "icon": "assign",
  "idx": 0,
- "indicator_color": "green",
+ "indicator_color": "",
  "is_hidden": 0,
- "label": "Role Permission Manager",
+ "label": "Role  Manager ",
  "links": [],
- "modified": "2026-02-05 13:02:27.372674",
+ "modified": "2026-02-07 10:28:41.331142",
  "modified_by": "Administrator",
  "module": "Frappe Role Manager",
- "name": "Role Permission Manager",
+ "name": "Role  Manager ",
  "number_cards": [],
  "owner": "Administrator",
  "parent_page": "Users",
@@ -49,5 +49,5 @@
    "type": "DocType"
   }
  ],
- "title": "Role Permission Manager"
+ "title": "Role  Manager "
 }

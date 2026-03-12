@@ -539,16 +539,20 @@ def create_custom_role_with_permissions(role_name, permissions, desk_access=True
 
 
 @frappe.whitelist()
-def copy_with_custom_permissions(source_user, target_user, selected_permissions, custom_role_name=None):
+def copy_with_custom_permissions(source_user, target_user, selected_permissions, custom_role_name=None, copy_user_permissions=True, create_role_profile=False, role_profile_name=None):
 	"""Copy permissions with cherry-picked DocType permissions.
 
 	Creates a custom role with only the selected permissions and assigns it to the target user.
+	Optionally creates a new Role Profile and copies user permissions.
 
 	Args:
 	    source_user: Source user
 	    target_user: Target user
-	    selected_permissions: JSON list of {role, doctype, read, write, create, ...}
-	    custom_role_name: Optional name for the custom role (auto-generated if not provided)
+	    selected_permissions: JSON list of {doctype, read, write, create, ...}
+	    custom_role_name: Name for the custom role (required)
+	    copy_user_permissions: Whether to copy user permission records
+	    create_role_profile: Whether to create a new Role Profile
+	    role_profile_name: Name for the new Role Profile (required if create_role_profile is True)
 
 	Returns:
 	    dict: Result
@@ -557,6 +561,9 @@ def copy_with_custom_permissions(source_user, target_user, selected_permissions,
 
 	if isinstance(selected_permissions, str):
 		selected_permissions = json.loads(selected_permissions)
+
+	copy_user_permissions = _to_bool(copy_user_permissions)
+	create_role_profile = _to_bool(create_role_profile)
 
 	if not selected_permissions:
 		frappe.throw(_("No permissions selected"))
@@ -567,6 +574,11 @@ def copy_with_custom_permissions(source_user, target_user, selected_permissions,
 
 	custom_role_name = custom_role_name.strip()
 
+	if create_role_profile:
+		if not role_profile_name or not role_profile_name.strip():
+			frappe.throw(_("Role Profile Name is required when creating a new Role Profile."))
+		role_profile_name = role_profile_name.strip()
+
 	# Create operation log
 	log = create_operation_log(
 		"Copy Custom Permissions",
@@ -575,6 +587,9 @@ def copy_with_custom_permissions(source_user, target_user, selected_permissions,
 			"target_user": target_user,
 			"custom_role_name": custom_role_name,
 			"permissions_count": len(selected_permissions),
+			"copy_user_permissions": copy_user_permissions,
+			"create_role_profile": create_role_profile,
+			"role_profile_name": role_profile_name,
 		},
 	)
 	log.mark_started()
@@ -590,23 +605,73 @@ def copy_with_custom_permissions(source_user, target_user, selected_permissions,
 		if result.get("status") != "success":
 			raise Exception("Failed to create custom role")
 
-		# Assign the custom role to target user
+		# Collect all roles to include in the Role Profile
+		# (the newly created custom role + any selected roles from the cherry-pick)
+		selected_roles = []
+		dialog_roles = set()
+		# The custom role is always included
+		dialog_roles.add(custom_role_name)
+
 		target_doc = frappe.get_doc("User", target_user)
 		target_doc.append("roles", {"role": custom_role_name})
+
+		# Create new Role Profile if requested
+		if create_role_profile:
+			if frappe.db.exists("Role Profile", role_profile_name):
+				frappe.throw(_("Role Profile '{0}' already exists. Please choose a different name.").format(role_profile_name))
+
+			rp = frappe.new_doc("Role Profile")
+			rp.role_profile = role_profile_name
+			# Add the custom role to the profile
+			rp.append("roles", {"role": custom_role_name})
+			# Also add any other selected roles from the cherry-pick checkboxes
+			for role_row in target_doc.roles:
+				if role_row.role != custom_role_name:
+					rp.append("roles", {"role": role_row.role})
+			rp.insert(ignore_permissions=True)
+
+			target_doc.role_profile_name = role_profile_name
+
 		target_doc.save(ignore_permissions=True)
+
+		# Copy user permissions (separate documents)
+		user_permissions_added = 0
+		if copy_user_permissions:
+			source_perms = frappe.get_all(
+				"User Permission",
+				filters={"user": source_user},
+				fields=["allow", "for_value", "applicable_for", "apply_to_all_doctypes"],
+			)
+
+			for perm in source_perms:
+				exists = frappe.db.exists(
+					"User Permission",
+					{"user": target_user, "allow": perm.allow, "for_value": perm.for_value},
+				)
+				if not exists:
+					new_perm = frappe.new_doc("User Permission")
+					new_perm.user = target_user
+					new_perm.allow = perm.allow
+					new_perm.for_value = perm.for_value
+					new_perm.applicable_for = perm.applicable_for
+					new_perm.apply_to_all_doctypes = perm.apply_to_all_doctypes
+					new_perm.insert(ignore_permissions=True)
+					user_permissions_added += 1
 
 		frappe.db.commit()
 
 		log.mark_completed(
-			success_count=1,
+			success_count=1 + user_permissions_added,
 			failure_count=0,
-			details={"custom_role": custom_role_name, "permissions": len(selected_permissions)},
+			details={"custom_role": custom_role_name, "permissions": len(selected_permissions), "user_permissions_added": user_permissions_added, "role_profile": role_profile_name if create_role_profile else None},
 		)
 
 		return {
 			"status": "success",
 			"custom_role": custom_role_name,
 			"permissions_added": len(selected_permissions),
+			"user_permissions_added": user_permissions_added,
+			"role_profile": role_profile_name if create_role_profile else None,
 		}
 
 	except Exception as e:

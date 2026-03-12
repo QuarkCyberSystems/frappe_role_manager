@@ -74,26 +74,12 @@ def get_effective_permissions(user):
 		return {}
 
 	# Get all DocPerms for user's roles
+	perm_fields = ["select", "read", "write", "create", "delete", "submit", "cancel", "amend", "report", "export", "import", "share", "print", "email"]
+
 	docperms = frappe.get_all(
 		"DocPerm",
 		filters={"role": ["in", roles], "permlevel": 0},
-		fields=[
-			"parent as doctype",
-			"role",
-			"read",
-			"write",
-			"create",
-			"delete",
-			"submit",
-			"cancel",
-			"amend",
-			"report",
-			"export",
-			"import",
-			"share",
-			"print",
-			"email",
-		],
+		fields=["parent as doctype", "role"] + perm_fields,
 	)
 
 	# Aggregate permissions by DocType (OR logic - if any role has permission, user has it)
@@ -103,24 +89,13 @@ def get_effective_permissions(user):
 		if doctype not in permissions:
 			permissions[doctype] = {
 				"doctype": doctype,
-				"read": 0,
-				"write": 0,
-				"create": 0,
-				"delete": 0,
-				"submit": 0,
-				"cancel": 0,
-				"amend": 0,
-				"report": 0,
-				"export": 0,
-				"import": 0,
-				"share": 0,
-				"print": 0,
-				"email": 0,
 				"roles": [],
 			}
+			for f in perm_fields:
+				permissions[doctype][f] = 0
 
 		# OR the permission flags
-		for perm in ["read", "write", "create", "delete", "submit", "cancel", "amend", "report", "export", "import", "share", "print", "email"]:
+		for perm in perm_fields:
 			if dp.get(perm):
 				permissions[doctype][perm] = 1
 
@@ -128,6 +103,170 @@ def get_effective_permissions(user):
 			permissions[doctype]["roles"].append(dp.role)
 
 	return permissions
+
+
+@frappe.whitelist()
+def toggle_doctype_permission(doctype, role, permission_type, enabled):
+	"""Toggle a single permission flag on a DocPerm record.
+
+	Args:
+		doctype: The DocType name
+		role: The role to modify
+		permission_type: Permission field (read, write, create, delete, submit, cancel)
+		enabled: 1 or 0
+	"""
+	valid_perms = ["select", "read", "write", "create", "delete", "submit", "cancel", "amend", "report", "export", "import", "share", "print", "email"]
+	if permission_type not in valid_perms:
+		frappe.throw(_("Invalid permission type: {0}").format(permission_type))
+
+	enabled = 1 if int(enabled) else 0
+
+	existing = frappe.db.exists("DocPerm", {"parent": doctype, "role": role, "permlevel": 0})
+
+	if existing:
+		doc = frappe.get_doc("DocPerm", existing)
+		setattr(doc, permission_type, enabled)
+		doc.save(ignore_permissions=True)
+	elif enabled:
+		dt = frappe.get_doc("DocType", doctype)
+		perm_row = {
+			"role": role,
+			"permlevel": 0,
+		}
+		perm_row[permission_type] = 1
+		dt.append("permissions", perm_row)
+		dt.save(ignore_permissions=True)
+	else:
+		return {"status": "success"}
+
+	frappe.db.commit()
+	return {"status": "success"}
+
+
+@frappe.whitelist()
+def remove_doctype_permission(doctype, role):
+	"""Remove all permissions for a DocType+Role combination.
+
+	Deletes the DocPerm row for the given role on the given DocType.
+	"""
+	existing = frappe.db.exists("DocPerm", {"parent": doctype, "role": role, "permlevel": 0})
+	if existing:
+		dt = frappe.get_doc("DocType", doctype)
+		dt.permissions = [p for p in dt.permissions if not (p.role == role and p.permlevel == 0)]
+		dt.save(ignore_permissions=True)
+		frappe.db.commit()
+
+	return {"status": "success"}
+
+
+@frappe.whitelist()
+def add_doctype_permission(doctype, role, permissions):
+	"""Add a new DocType permission for a role.
+
+	Args:
+		doctype: The DocType name
+		role: The role to grant permission to
+		permissions: JSON dict of permission flags (read, write, create, delete, etc.)
+	"""
+	import json
+
+	if isinstance(permissions, str):
+		permissions = json.loads(permissions)
+
+	existing = frappe.db.exists("DocPerm", {"parent": doctype, "role": role, "permlevel": 0})
+	if existing:
+		# Update existing
+		doc = frappe.get_doc("DocPerm", existing)
+		for field, value in permissions.items():
+			setattr(doc, field, value)
+		doc.save(ignore_permissions=True)
+	else:
+		# Add new
+		dt = frappe.get_doc("DocType", doctype)
+		perm_row = {"role": role, "permlevel": 0}
+		perm_row.update(permissions)
+		dt.append("permissions", perm_row)
+		dt.save(ignore_permissions=True)
+
+	frappe.db.commit()
+	return {"status": "success"}
+
+
+@frappe.whitelist()
+def add_user_role(user, role):
+	"""Add a role to a user and optionally update their Role Profile."""
+	user_doc = frappe.get_doc("User", user)
+
+	# Check if user already has this role
+	existing_roles = [r.role for r in user_doc.roles]
+	if role in existing_roles:
+		return {"status": "success", "message": _("User already has role {0}").format(role)}
+
+	user_doc.append("roles", {"role": role})
+	user_doc.save(ignore_permissions=True)
+
+	# If user has a Role Profile, also add the role to it
+	if user_doc.role_profile_name:
+		rp = frappe.get_doc("Role Profile", user_doc.role_profile_name)
+		rp_roles = [r.role for r in rp.roles]
+		if role not in rp_roles:
+			rp.append("roles", {"role": role})
+			rp.save(ignore_permissions=True)
+
+	frappe.db.commit()
+	return {"status": "success"}
+
+
+@frappe.whitelist()
+def remove_user_role(user, role):
+	"""Remove a role from a user and optionally update their Role Profile."""
+	user_doc = frappe.get_doc("User", user)
+
+	# Remove the role
+	user_doc.roles = [r for r in user_doc.roles if r.role != role]
+	user_doc.save(ignore_permissions=True)
+
+	# If user has a Role Profile, also remove the role from it
+	if user_doc.role_profile_name:
+		rp = frappe.get_doc("Role Profile", user_doc.role_profile_name)
+		rp.roles = [r for r in rp.roles if r.role != role]
+		rp.save(ignore_permissions=True)
+
+	frappe.db.commit()
+	return {"status": "success"}
+
+
+@frappe.whitelist()
+def change_role_profile(user, role_profile_name=None):
+	"""Change or remove the Role Profile for a user.
+
+	When changing to a new Role Profile, the user's roles are updated
+	to match the new profile's roles.
+	"""
+	user_doc = frappe.get_doc("User", user)
+	user_doc.role_profile_name = role_profile_name or ""
+	user_doc.save(ignore_permissions=True)
+	frappe.db.commit()
+	return {"status": "success"}
+
+
+@frappe.whitelist()
+def get_all_role_profiles():
+	"""Get all available Role Profiles."""
+	profiles = frappe.get_all("Role Profile", fields=["name"], order_by="name")
+	return [p.name for p in profiles]
+
+
+@frappe.whitelist()
+def get_assignable_roles():
+	"""Get all roles that can be assigned to users."""
+	roles = frappe.get_all(
+		"Role",
+		filters={"name": ["not in", ["Administrator", "Guest", "All"]], "disabled": 0},
+		fields=["name"],
+		order_by="name",
+	)
+	return [r.name for r in roles]
 
 
 def get_user_permission_filters(user):
@@ -155,6 +294,39 @@ def get_user_permission_filters(user):
 		)
 
 	return grouped
+
+
+@frappe.whitelist()
+def delete_user_permission(name):
+	"""Delete a single User Permission record by name."""
+	if frappe.db.exists("User Permission", name):
+		frappe.delete_doc("User Permission", name, ignore_permissions=True)
+		frappe.db.commit()
+	return {"status": "success"}
+
+
+@frappe.whitelist()
+def add_user_permission(user, allow, for_value):
+	"""Add a new User Permission record.
+
+	Args:
+		user: The user email
+		allow: The DocType to filter on
+		for_value: The allowed value
+	"""
+	# Check if already exists
+	exists = frappe.db.exists("User Permission", {"user": user, "allow": allow, "for_value": for_value})
+	if exists:
+		return {"status": "success", "message": _("Permission already exists")}
+
+	doc = frappe.new_doc("User Permission")
+	doc.user = user
+	doc.allow = allow
+	doc.for_value = for_value
+	doc.apply_to_all_doctypes = 1
+	doc.insert(ignore_permissions=True)
+	frappe.db.commit()
+	return {"status": "success"}
 
 
 def get_permission_summary(user):

@@ -466,6 +466,7 @@ class RoleManager {
 
 	render_user_details(data) {
 		const me = this;
+		me.current_user_data = data;
 
 		const html = `
 			<div class="user-details">
@@ -522,27 +523,33 @@ class RoleManager {
 				<div class="section">
 					<h4><i class="fa fa-key"></i> Assigned Roles (${data.roles.length})</h4>
 					<div class="roles-list">
-						${data.roles.map((r) => `<span class="role-tag">${r}</span>`).join("")}
+						${data.roles.map((r) => `<span class="role-tag">${r} <i class="fa fa-times remove-role" data-role="${r}" data-user="${data.user}" style="cursor:pointer; margin-left:4px; opacity:0.6;"></i></span>`).join("")}
+						<span class="role-tag add-role-btn" data-user="${data.user}" style="cursor:pointer; border-style:dashed; opacity:0.7;"><i class="fa fa-plus"></i> Add Role</span>
 					</div>
 				</div>
 
 				<!-- Role Profile -->
-				${
-					data.role_profile
-						? `
 				<div class="section">
-					<h4><i class="fa fa-id-card"></i> Role Profile: ${data.role_profile.name}</h4>
-					<div class="roles-list">
+					<h4><i class="fa fa-id-card"></i> Role Profile</h4>
+					<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+						<span class="role-profile-display">${data.role_profile ? data.role_profile.name : '<span class="text-muted">None</span>'}</span>
+						<button class="btn btn-xs btn-default change-role-profile" data-user="${data.user}"><i class="fa fa-pencil"></i> Change</button>
+						${data.role_profile ? `<button class="btn btn-xs btn-danger-light remove-role-profile" data-user="${data.user}"><i class="fa fa-times"></i> Remove</button>` : ""}
+					</div>
+					${data.role_profile ? `
+					<div class="roles-list" style="margin-top: 8px;">
 						${data.role_profile.roles.map((r) => `<span class="role-tag secondary">${r}</span>`).join("")}
 					</div>
+					` : ""}
 				</div>
-				`
-						: ""
-				}
 
 				<!-- User Permissions Section -->
 				<div class="section">
-					<h4><i class="fa fa-filter"></i> User Permissions (Document Filters)</h4>
+					<h4 style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+						<span><i class="fa fa-filter"></i> User Permissions (Document Filters)</span>
+						<div class="add-user-perm-doctype-inline" style="display: inline-block; width: 150px;"></div>
+						<div class="add-user-perm-value-inline" style="display: inline-block; width: 180px;"></div>
+					</h4>
 					${
 						Object.keys(data.user_permissions).length > 0
 							? `
@@ -551,6 +558,7 @@ class RoleManager {
 							<tr>
 								<th>DocType</th>
 								<th>Allowed Values</th>
+								<th style="width: 30px;"></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -559,7 +567,10 @@ class RoleManager {
 									([doctype, perms]) => `
 								<tr>
 									<td><strong>${doctype}</strong></td>
-									<td>${perms.map((p) => `<span class="badge">${p.for_value}</span>`).join(" ")}</td>
+									<td>${perms.map((p) => `<span class="badge" style="display: inline-flex; align-items: center; gap: 4px;">${p.for_value} <i class="fa fa-times remove-user-perm" data-name="${p.name}" style="cursor:pointer; opacity:0.6;"></i></span>`).join(" ")}</td>
+									<td class="text-center">
+										<i class="fa fa-plus add-user-perm-value" data-doctype="${doctype}" data-user="${data.user}" style="cursor:pointer; opacity:0.5;" title="Add value for ${doctype}"></i>
+									</td>
 								</tr>
 							`
 								)
@@ -573,44 +584,58 @@ class RoleManager {
 
 				<!-- Effective Permissions Section -->
 				<div class="section">
-					<h4><i class="fa fa-check-circle"></i> Effective Permissions (${Object.keys(data.effective_permissions).length} DocTypes)</h4>
-					<div class="permission-matrix">
+					<h4 style="display: flex; align-items: center; gap: 10px;">
+						<span><i class="fa fa-check-circle"></i> Effective Permissions (${Object.keys(data.effective_permissions).length} DocTypes)</span>
+						<div class="add-doctype-inline" style="display: inline-block; width: 200px;"></div>
+					</h4>
+					<div class="permission-matrix" style="max-height: 500px; overflow-y: auto;">
 						<table class="table table-bordered table-sm">
 							<thead>
 								<tr>
 									<th>DocType</th>
-									<th>R</th>
-									<th>W</th>
-									<th>C</th>
-									<th>D</th>
-									<th>Submit</th>
-									<th>Cancel</th>
+									<th title="Select">Sel</th>
+									<th title="Read">R</th>
+									<th title="Write">W</th>
+									<th title="Create">C</th>
+									<th title="Delete">D</th>
+									<th title="Submit">Sub</th>
+									<th title="Cancel">Can</th>
+									<th title="Print">Prt</th>
+									<th title="Email">Eml</th>
+									<th title="Report">Rep</th>
+									<th title="Import">Imp</th>
+									<th title="Export">Exp</th>
+									<th title="Share">Shr</th>
+									<th></th>
 								</tr>
 							</thead>
 							<tbody>
 								${Object.entries(data.effective_permissions)
-									.slice(0, 20)
 									.map(
 										([doctype, perm]) => `
 									<tr>
 										<td>${doctype}</td>
-										<td>${me.perm_icon(perm.read)}</td>
-										<td>${me.perm_icon(perm.write)}</td>
-										<td>${me.perm_icon(perm.create)}</td>
-										<td>${me.perm_icon(perm.delete)}</td>
-										<td>${me.perm_icon(perm.submit)}</td>
-										<td>${me.perm_icon(perm.cancel)}</td>
+										${["select", "read", "write", "create", "delete", "submit", "cancel", "print", "email", "report", "import", "export", "share"].map(
+											(p) => `<td class="text-center perm-toggle" style="cursor: pointer;"
+												data-doctype="${doctype}"
+												data-perm="${p}"
+												data-value="${perm[p] ? 1 : 0}"
+												data-roles='${JSON.stringify(perm.roles || [])}'
+												title="Click to toggle ${p} — Roles: ${(perm.roles || []).join(", ")}">
+												${me.perm_icon(perm[p])}</td>`
+										).join("")}
+										<td class="text-center">
+											<i class="fa fa-trash text-danger remove-doctype-perm" style="cursor:pointer; opacity:0.5;"
+												data-doctype="${doctype}"
+												data-roles='${JSON.stringify(perm.roles || [])}'
+												title="Remove all permissions for ${doctype}"></i>
+										</td>
 									</tr>
 								`
 									)
 									.join("")}
 							</tbody>
 						</table>
-						${
-							Object.keys(data.effective_permissions).length > 20
-								? `<p class="text-muted">Showing 20 of ${Object.keys(data.effective_permissions).length} DocTypes</p>`
-								: ""
-						}
 					</div>
 				</div>
 			</div>
@@ -629,6 +654,361 @@ class RoleManager {
 
 		this.wrapper.find(".btn-edit-user").on("click", function () {
 			frappe.set_route("Form", "User", $(this).data("user"));
+		});
+
+		// Remove role
+		this.wrapper.find(".remove-role").on("click", function (e) {
+			e.stopPropagation();
+			const role = $(this).data("role");
+			const user = $(this).data("user");
+			frappe.confirm(
+				__("Remove role <b>{0}</b> from this user?", [role]),
+				function () {
+					frappe.call({
+						method: "frappe_role_manager.frappe_role_manager.api.view.remove_user_role",
+						args: { user: user, role: role },
+						callback: function (r) {
+							if (r.message && r.message.status === "success") {
+								me.load_user_details(user);
+							}
+						},
+					});
+				}
+			);
+		});
+
+		// Add role
+		this.wrapper.find(".add-role-btn").on("click", function () {
+			const user = $(this).data("user");
+			frappe.call({
+				method: "frappe_role_manager.frappe_role_manager.api.view.get_assignable_roles",
+				callback: function (r) {
+					if (r.message) {
+						frappe.prompt(
+							{
+								fieldtype: "Autocomplete",
+								fieldname: "role",
+								label: __("Role"),
+								options: r.message,
+								reqd: 1,
+							},
+							function (values) {
+								frappe.call({
+									method: "frappe_role_manager.frappe_role_manager.api.view.add_user_role",
+									args: { user: user, role: values.role },
+									callback: function (r2) {
+										if (r2.message && r2.message.status === "success") {
+											me.load_user_details(user);
+										}
+									},
+								});
+							},
+							__("Add Role"),
+							__("Add")
+						);
+					}
+				},
+			});
+		});
+
+		// Change Role Profile
+		this.wrapper.find(".change-role-profile").on("click", function () {
+			const user = $(this).data("user");
+			frappe.call({
+				method: "frappe_role_manager.frappe_role_manager.api.view.get_all_role_profiles",
+				callback: function (r) {
+					if (r.message) {
+						frappe.prompt(
+							{
+								fieldtype: "Autocomplete",
+								fieldname: "role_profile",
+								label: __("Role Profile"),
+								options: r.message,
+								reqd: 1,
+							},
+							function (values) {
+								frappe.call({
+									method: "frappe_role_manager.frappe_role_manager.api.view.change_role_profile",
+									args: { user: user, role_profile_name: values.role_profile },
+									callback: function (r2) {
+										if (r2.message && r2.message.status === "success") {
+											me.load_user_details(user);
+										}
+									},
+								});
+							},
+							__("Change Role Profile"),
+							__("Apply")
+						);
+					}
+				},
+			});
+		});
+
+		// Remove Role Profile
+		this.wrapper.find(".remove-role-profile").on("click", function () {
+			const user = $(this).data("user");
+			frappe.confirm(
+				__("Remove the Role Profile from this user? The user will keep their current roles."),
+				function () {
+					frappe.call({
+						method: "frappe_role_manager.frappe_role_manager.api.view.change_role_profile",
+						args: { user: user, role_profile_name: "" },
+						callback: function (r) {
+							if (r.message && r.message.status === "success") {
+								me.load_user_details(user);
+							}
+						},
+					});
+				}
+			);
+		});
+
+		// Remove a single User Permission value
+		this.wrapper.find(".remove-user-perm").on("click", function () {
+			const name = $(this).data("name");
+			$(this).closest(".badge").fadeOut(200);
+			frappe.call({
+				method: "frappe_role_manager.frappe_role_manager.api.view.delete_user_permission",
+				args: { name: name },
+				callback: function () {
+					me.load_user_details(me.selected_user);
+				},
+			});
+		});
+
+		// Add a new value to an existing User Permission DocType (inline + icon)
+		this.wrapper.find(".add-user-perm-value").on("click", function () {
+			const doctype = $(this).data("doctype");
+			const user = $(this).data("user");
+			const $td = $(this).closest("td");
+
+			// Replace icon with inline Link field
+			$td.html("");
+			const valField = frappe.ui.form.make_control({
+				df: {
+					fieldtype: "Link",
+					fieldname: "add_value_" + doctype,
+					options: doctype,
+					placeholder: __("Add {0}...", [doctype]),
+				},
+				parent: $td,
+				render_input: true,
+			});
+			valField.$input.css({ height: "26px", "font-size": "11px", width: "140px" });
+			valField.$input.focus();
+			valField.$input.on("change", function () {
+				const for_value = valField.get_value();
+				if (!for_value) return;
+				frappe.call({
+					method: "frappe_role_manager.frappe_role_manager.api.view.add_user_permission",
+					args: { user: user, allow: doctype, for_value: for_value },
+					callback: function (r) {
+						if (r.message && r.message.status === "success") {
+							me.load_user_details(user);
+						}
+					},
+				});
+			});
+		});
+
+		// Inline DocType + Value fields for adding new User Permission
+		let selectedPermDoctype = "";
+
+		const userPermDoctype = frappe.ui.form.make_control({
+			df: {
+				fieldtype: "Link",
+				fieldname: "user_perm_doctype",
+				options: "DocType",
+				placeholder: __("Select DocType..."),
+				get_query: function () {
+					return { filters: { istable: 0 } };
+				},
+			},
+			parent: this.wrapper.find(".add-user-perm-doctype-inline"),
+			render_input: true,
+		});
+		userPermDoctype.$input.css({ height: "28px", "font-size": "12px" });
+
+		const $valueParent = this.wrapper.find(".add-user-perm-value-inline");
+
+		function renderValueField(doctype) {
+			$valueParent.empty();
+			if (!doctype) {
+				$valueParent.html('<input class="form-control" disabled placeholder="Select DocType first..." style="height:28px; font-size:12px;">');
+				return;
+			}
+			const valCtrl = frappe.ui.form.make_control({
+				df: {
+					fieldtype: "Link",
+					fieldname: "user_perm_value_" + doctype,
+					options: doctype,
+					placeholder: __("Select {0} & press Enter", [doctype]),
+				},
+				parent: $valueParent,
+				render_input: true,
+			});
+			valCtrl.$input.css({ height: "28px", "font-size": "12px" });
+			valCtrl.$input.focus();
+			valCtrl.$input.on("change", function () {
+				const val = valCtrl.get_value();
+				if (!val) return;
+				frappe.call({
+					method: "frappe_role_manager.frappe_role_manager.api.view.add_user_permission",
+					args: { user: me.selected_user, allow: doctype, for_value: val },
+					callback: function (r) {
+						if (r.message && r.message.status === "success") {
+							frappe.show_alert({ message: __("✓ Added filter {0}: {1}", [doctype, val]), indicator: "green" });
+							me.load_user_details(me.selected_user);
+						}
+					},
+				});
+			});
+		}
+
+		// Initialize with disabled value field
+		renderValueField("");
+
+		// When DocType is selected, recreate the value field with correct options
+		userPermDoctype.$input.on("change", function () {
+			selectedPermDoctype = userPermDoctype.get_value();
+			renderValueField(selectedPermDoctype);
+		});
+
+		// Bind permission toggle clicks
+		this.wrapper.find(".perm-toggle").on("click", function () {
+			const $cell = $(this);
+			const doctype = $cell.data("doctype");
+			const permType = $cell.data("perm");
+			const currentValue = parseInt($cell.data("value"));
+			const roles = $cell.data("roles") || [];
+			const newValue = currentValue ? 0 : 1;
+
+			function doToggle(role) {
+				// Optimistic UI update
+				$cell.data("value", newValue);
+				$cell.html(me.perm_icon(newValue));
+
+				frappe.call({
+					method: "frappe_role_manager.frappe_role_manager.api.view.toggle_doctype_permission",
+					args: {
+						doctype: doctype,
+						role: role,
+						permission_type: permType,
+						enabled: newValue,
+					},
+					callback: function (r) {
+						if (!r.message || r.message.status !== "success") {
+							// Revert on failure
+							$cell.data("value", currentValue);
+							$cell.html(me.perm_icon(currentValue));
+							frappe.msgprint(__("Failed to update permission"));
+						}
+					},
+					error: function () {
+						$cell.data("value", currentValue);
+						$cell.html(me.perm_icon(currentValue));
+					},
+				});
+			}
+
+			if (roles.length === 0) {
+				frappe.msgprint(__("No role found for this DocType"));
+				return;
+			}
+
+			if (roles.length === 1) {
+				doToggle(roles[0]);
+			} else {
+				// Multiple roles — ask which one to modify
+				frappe.prompt(
+					{
+						fieldtype: "Select",
+						fieldname: "role",
+						label: __("Select Role to Modify"),
+						options: roles.join("\n"),
+						reqd: 1,
+						default: roles[0],
+						description: __("Multiple roles grant access to {0}. Select which role to modify.", [doctype]),
+					},
+					function (values) {
+						doToggle(values.role);
+					},
+					__("Select Role"),
+					__("Update")
+				);
+			}
+		});
+
+		// Remove DocType permissions (no confirmation)
+		this.wrapper.find(".remove-doctype-perm").on("click", function () {
+			const $row = $(this).closest("tr");
+			const doctype = $(this).data("doctype");
+			const roles = $(this).data("roles") || [];
+
+			if (roles.length === 0) return;
+
+			$row.fadeOut(200);
+			roles.forEach(function (role) {
+				frappe.call({
+					method: "frappe_role_manager.frappe_role_manager.api.view.remove_doctype_permission",
+					args: { doctype: doctype, role: role },
+					async: false,
+				});
+			});
+			frappe.show_alert({ message: __("Removed {0}", [doctype]), indicator: "green" });
+			me.load_user_details(me.selected_user);
+		});
+
+		// Inline Add DocType field
+		const addDoctypeField = frappe.ui.form.make_control({
+			df: {
+				fieldtype: "Link",
+				fieldname: "add_doctype",
+				options: "DocType",
+				placeholder: __("Search DocType & press Enter"),
+				get_query: function () {
+					return { filters: { istable: 0 } };
+				},
+			},
+			parent: this.wrapper.find(".add-doctype-inline"),
+			render_input: true,
+		});
+		addDoctypeField.$input.css({ height: "28px", "font-size": "12px" });
+		addDoctypeField.$input.on("change", function () {
+			const doctype = addDoctypeField.get_value();
+			if (!doctype) return;
+
+			// Check if already exists
+			const existingDoctypes = me.current_user_data ? Object.keys(me.current_user_data.effective_permissions || {}) : [];
+			if (existingDoctypes.includes(doctype)) {
+				frappe.show_alert({ message: __("{0} already exists in permissions", [doctype]), indicator: "orange" });
+				addDoctypeField.set_value("");
+				return;
+			}
+
+			const userRoles = me.current_user_data ? me.current_user_data.roles : [];
+			const role = userRoles[0] || "";
+			if (!role) {
+				frappe.show_alert({ message: __("User has no roles. Add a role first."), indicator: "orange" });
+				addDoctypeField.set_value("");
+				return;
+			}
+			frappe.call({
+				method: "frappe_role_manager.frappe_role_manager.api.view.add_doctype_permission",
+				args: {
+					doctype: doctype,
+					role: role,
+					permissions: JSON.stringify({ read: 1 }),
+				},
+				callback: function (r) {
+					if (r.message && r.message.status === "success") {
+						frappe.show_alert({ message: __("✓ Added {0} with Read permission on role {1}", [doctype, role]), indicator: "green" });
+						me.load_user_details(me.selected_user);
+					}
+				},
+			});
+			addDoctypeField.set_value("");
 		});
 	}
 
@@ -1413,71 +1793,35 @@ class RoleManager {
 				},
 				{
 					fieldtype: "Check",
-					fieldname: "copy_role_profile",
-					label: __("Copy Role Profile"),
+					fieldname: "create_role_profile",
+					label: __("Create New Role Profile"),
 					default: 1,
+					description: __("Creates a new Role Profile containing the custom role and selected roles, then assigns it to the target user"),
+				},
+				{
+					fieldtype: "Data",
+					fieldname: "role_profile_name",
+					label: __("Role Profile Name"),
+					depends_on: "create_role_profile",
+					mandatory_depends_on: "create_role_profile",
+					description: __("A unique name for the new Role Profile"),
 				},
 				{
 					fieldtype: "Section Break",
-					label: __("Advanced: Create Custom Role"),
-					collapsible: 1,
-					collapsed: 1,
-				},
-				{
-					fieldtype: "Check",
-					fieldname: "create_custom_role",
-					label: __("Create custom role with only selected DocType permissions"),
-					description: __("Instead of copying whole roles, creates a new custom role with only the DocType permissions you selected above"),
+					label: __("Custom Role"),
 				},
 				{
 					fieldtype: "Data",
 					fieldname: "custom_role_name",
 					label: __("Custom Role Name"),
-					depends_on: "create_custom_role",
-					mandatory_depends_on: "create_custom_role",
-					description: __("Required - A unique name for the new custom role"),
+					reqd: 1,
+					description: __("A unique name for the new custom role that will be created with the selected DocType permissions"),
 				},
 			],
 			primary_action_label: __("Copy Selected"),
 			primary_action: function (values) {
-				// Check if creating custom role with cherry-picked DocType permissions
-				if (values.create_custom_role) {
-					me.copy_with_custom_permissions(d, user, values);
-					return;
-				}
-
-				// Get selected roles from checkboxes
-				let selected_roles = null;
-				if (values.copy_roles) {
-					selected_roles = [];
-					d.$wrapper.find(".role-checkbox:checked").each(function () {
-						selected_roles.push($(this).data("role"));
-					});
-
-					if (selected_roles.length === 0) {
-						frappe.msgprint(__("Please select at least one role to copy, or uncheck 'Copy Roles'"));
-						return;
-					}
-				}
-
-				frappe.call({
-					method: "frappe_role_manager.frappe_role_manager.api.copy.execute_copy",
-					args: {
-						source_user: user,
-						target_user: values.target_user,
-						copy_roles: values.copy_roles,
-						copy_user_permissions: values.copy_user_permissions,
-						copy_role_profile: values.copy_role_profile,
-						selected_roles: selected_roles ? JSON.stringify(selected_roles) : null,
-					},
-					callback: function (r) {
-						if (r.message && r.message.status === "success") {
-							frappe.msgprint(__("Permissions copied successfully! {0} roles added.", [r.message.results.roles_added]));
-							me.refresh();
-						}
-					},
-				});
-				d.hide();
+				// Always create a new custom role with cherry-picked DocType permissions
+				me.copy_with_custom_permissions(d, user, values);
 			},
 		});
 
@@ -1623,17 +1967,7 @@ class RoleManager {
 			return;
 		}
 
-		// Validate custom role name is provided (mandatory)
-		let custom_role_name = values.custom_role_name;
-		if (!custom_role_name || !custom_role_name.trim()) {
-			frappe.msgprint({
-				title: __("Custom Role Name Required"),
-				message: __("Please provide a unique name for the custom role. This prevents accidentally modifying permissions for existing roles."),
-				indicator: "orange",
-			});
-			return;
-		}
-		custom_role_name = custom_role_name.trim();
+		let custom_role_name = values.custom_role_name.trim();
 
 		frappe.call({
 			method: "frappe_role_manager.frappe_role_manager.api.copy.copy_with_custom_permissions",
@@ -1642,16 +1976,23 @@ class RoleManager {
 				target_user: values.target_user,
 				selected_permissions: JSON.stringify(selected_permissions),
 				custom_role_name: custom_role_name,
+				copy_user_permissions: values.copy_user_permissions,
+				create_role_profile: values.create_role_profile,
+				role_profile_name: values.role_profile_name,
 			},
 			callback: function (r) {
 				if (r.message && r.message.status === "success") {
+					let msg = __("Created custom role '{0}' with {1} DocType permissions and assigned to {2}", [
+						r.message.custom_role,
+						r.message.permissions_added,
+						values.target_user,
+					]);
+					if (r.message.role_profile) {
+						msg += "<br>" + __("Created Role Profile: {0}", [r.message.role_profile]);
+					}
 					frappe.msgprint({
 						title: __("Success"),
-						message: __("Created custom role '{0}' with {1} DocType permissions and assigned to {2}", [
-							r.message.custom_role,
-							r.message.permissions_added,
-							values.target_user,
-						]),
+						message: msg,
 						indicator: "green",
 					});
 					me.refresh();
